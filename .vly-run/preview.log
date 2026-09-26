@@ -1,0 +1,11 @@
+sh: 29: source: not found
+sh: 29: source: not found
+
+> glyphary@1.0.0 dev
+> vite --host 0.0.0.0
+
+
+  VITE v8.3.1  ready in 169 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://169.254.0.21:5173/  eth0

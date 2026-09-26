@@ -1,0 +1,47 @@
+name: Rebuild icon manifests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: rebuild-icon-manifests
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out website repository
+        uses: actions/checkout@v4
+      - name: Check out pride flags source
+        uses: actions/checkout@v4
+        with:
+          repository: Glyphary-Icons/pride-flag-icons
+          ref: main
+          path: .pride-flags-source
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Rebuild manifests from latest pride SVGs
+        run: npm run manifests
+        env:
+          PRIDE_FLAGS_DIR: .pride-flags-source
+      - name: Create pull request with regenerated manifests
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/rebuild-icon-manifests
+          delete-branch: true
+          commit-message: "chore: rebuild icon manifests"
+          title: "chore: rebuild icon manifests"
+          body: "Regenerate static icon manifests from the latest source assets, including the separate Glyphary Pride Flags repository."
+          add-paths: |
+            public/manifests/*.json
+            src/data/summaries.json
