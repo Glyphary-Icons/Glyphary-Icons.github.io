@@ -3,7 +3,8 @@
  * Builds the static icon manifests consumed by the site.
  *
  * Reads open-source SVG icon sets from node_modules, normalizes them as configured,
- * optionally reads the separate pride flag catalog from PRIDE_FLAGS_DIR, and writes:
+ * reads the separate pride flag catalog from PRIDE_FLAGS_DIR or directly from its public
+ * GitHub repository, and writes:
  *   - public/manifests/<setId>.json  (full set, fetched lazily by the app)
  *   - src/data/summaries.json        (small card metadata for the home page)
  *
@@ -13,98 +14,63 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from 
 import { join, basename, resolve } from "node:path";
 
 const ROOT = process.cwd();
+const PRIDE_FLAGS_RAW_URL = "https://raw.githubusercontent.com/Glyphary-Icons/pride-flag-icons/main/";
+
+async function fetchPrideSource(path) {
+  const response = await fetch(new URL(path, PRIDE_FLAGS_RAW_URL));
+  if (!response.ok) throw new Error(`could not fetch Pride Flags source ${path} (HTTP ${response.status})`);
+  return response.text();
+}
 
 /** Drop these root attributes: sizing, classes, a11y noise, link namespaces. */
 const DROP_ATTRS = new Set([
-  "width",
-  "height",
-  "class",
-  "id",
-  "xmlns",
-  "xmlns:xlink",
-  "aria-hidden",
-  "data-slot",
-  "role",
-  "version",
-  "x",
-  "y",
+  "width", "height", "class", "id", "xmlns", "xmlns:xlink", "aria-hidden", "data-slot",
+  "role", "version", "x", "y",
 ]);
 
 /** Attributes that should survive normalization untouched. */
 const KEEP_ATTRS = new Set([
-  "viewBox",
-  "fill",
-  "stroke",
-  "fill-rule",
-  "clip-rule",
-  "stroke-width",
-  "stroke-linecap",
-  "stroke-linejoin",
-  "stroke-dasharray",
-  "stroke-dashoffset",
-  "stroke-opacity",
-  "fill-opacity",
-  "opacity",
+  "viewBox", "fill", "stroke", "fill-rule", "clip-rule", "stroke-width", "stroke-linecap",
+  "stroke-linejoin", "stroke-dasharray", "stroke-dashoffset", "stroke-opacity", "fill-opacity", "opacity",
 ]);
 
 const SETS = [
   {
-    id: "feather",
-    name: "Feather",
-    description:
-      "The original minimalist stroke set: 287 icons drawn on a 24px grid with a consistent 2px round stroke.",
-    license: "MIT",
-    licenseUrl: "https://github.com/feathericons/feather/blob/master/LICENSE",
-    sourceUrl: "https://github.com/feathericons/feather",
-    style: "stroke",
+    id: "feather", name: "Feather",
+    description: "The original minimalist stroke set: 287 icons drawn on a 24px grid with a consistent 2px round stroke.",
+    license: "MIT", licenseUrl: "https://github.com/feathericons/feather/blob/master/LICENSE",
+    sourceUrl: "https://github.com/feathericons/feather", style: "stroke",
     iconsDir: "node_modules/feather-icons/dist/icons",
   },
   {
-    id: "lucide",
-    name: "Lucide",
-    description:
-      "The community-grown successor to Feather: 2,000+ icons in the same clean 24px stroke language.",
-    license: "ISC",
-    licenseUrl: "https://github.com/lucide-icons/lucide/blob/main/LICENSE",
-    sourceUrl: "https://github.com/lucide-icons/lucide",
-    style: "stroke",
+    id: "lucide", name: "Lucide",
+    description: "The community-grown successor to Feather: 2,000+ icons in the same clean 24px stroke language.",
+    license: "ISC", licenseUrl: "https://github.com/lucide-icons/lucide/blob/main/LICENSE",
+    sourceUrl: "https://github.com/lucide-icons/lucide", style: "stroke",
     iconsDir: "node_modules/lucide-static/icons",
   },
   {
-    id: "heroicons",
-    name: "Heroicons",
-    description:
-      "Hand-built by the Tailwind CSS team. 648 icons split into outline and solid styles at 24px.",
-    license: "MIT",
-    licenseUrl: "https://github.com/tailwindlabs/heroicons/blob/master/LICENSE",
-    sourceUrl: "https://github.com/tailwindlabs/heroicons",
-    style: "stroke",
+    id: "heroicons", name: "Heroicons",
+    description: "Hand-built by the Tailwind CSS team. 648 icons split into outline and solid styles at 24px.",
+    license: "MIT", licenseUrl: "https://github.com/tailwindlabs/heroicons/blob/master/LICENSE",
+    sourceUrl: "https://github.com/tailwindlabs/heroicons", style: "stroke",
     groups: [
       { category: "outline", iconsDir: "node_modules/heroicons/24/outline" },
       { category: "solid", iconsDir: "node_modules/heroicons/24/solid" },
     ],
   },
   {
-    id: "bootstrap-icons",
-    name: "Bootstrap Icons",
-    description:
-      "The official Bootstrap icon family: 2,000+ solid glyphs drawn on a 16px grid, free for any project.",
-    license: "MIT",
-    licenseUrl: "https://github.com/twbs/icons/blob/main/LICENSE.md",
-    sourceUrl: "https://github.com/twbs/icons",
-    style: "solid",
+    id: "bootstrap-icons", name: "Bootstrap Icons",
+    description: "The official Bootstrap icon family: 2,000+ solid glyphs drawn on a 16px grid, free for any project.",
+    license: "MIT", licenseUrl: "https://github.com/twbs/icons/blob/main/LICENSE.md",
+    sourceUrl: "https://github.com/twbs/icons", style: "solid",
     iconsDir: "node_modules/bootstrap-icons/icons",
   },
   {
-    id: "phosphor",
-    name: "Phosphor",
-    description:
-      "A flexible all-purpose icon family with six expressive weights: thin, light, regular, bold, fill, and duotone.",
-    license: "MIT",
-    licenseUrl: "https://github.com/phosphor-icons/core/blob/main/LICENSE",
-    sourceUrl: "https://phosphoricons.com/",
-    attribution: "Phosphor Icons",
-    style: "stroke",
+    id: "phosphor", name: "Phosphor",
+    description: "A flexible all-purpose icon family with six expressive weights: thin, light, regular, bold, fill, and duotone.",
+    license: "MIT", licenseUrl: "https://github.com/phosphor-icons/core/blob/main/LICENSE",
+    sourceUrl: "https://phosphoricons.com/", attribution: "Phosphor Icons", style: "stroke",
     groups: [
       { category: "thin", iconsDir: "node_modules/@phosphor-icons/core/assets/thin" },
       { category: "light", iconsDir: "node_modules/@phosphor-icons/core/assets/light" },
@@ -115,16 +81,10 @@ const SETS = [
     ],
   },
   {
-    id: "devicon",
-    name: "Devicon",
-    description:
-      "Programming language, framework, and developer-tool logos in original and monochrome variants.",
-    license: "MIT",
-    licenseUrl: "https://github.com/devicons/devicon/blob/master/LICENSE",
-    sourceUrl: "https://devicon.dev/",
-    attribution: "Devicon contributors",
-    style: "solid",
-    includeWordmarks: false,
+    id: "devicon", name: "Devicon",
+    description: "Programming language, framework, and developer-tool logos in original and monochrome variants.",
+    license: "MIT", licenseUrl: "https://github.com/devicons/devicon/blob/master/LICENSE",
+    sourceUrl: "https://devicon.dev/", attribution: "Devicon contributors", style: "solid", includeWordmarks: false,
     groups: [
       { category: "original", iconsDir: "node_modules/devicon/icons", filePattern: /-original(-wordmark)?.svg$/, recursive: true },
       { category: "plain", iconsDir: "node_modules/devicon/icons", filePattern: /-plain(-wordmark)?.svg$/, recursive: true },
@@ -132,95 +92,51 @@ const SETS = [
     ],
   },
   {
-    id: "flag-icons",
-    name: "Flag Icons",
-    description:
-      "Country and territory flags as crisp 4:3 SVGs, ready to recolor, resize, and export.",
-    license: "MIT",
-    licenseUrl: "https://github.com/lipis/flag-icons/blob/main/LICENSE",
-    sourceUrl: "https://github.com/lipis/flag-icons",
-    attribution: "Panayiotis Lipiridis",
-    style: "solid",
-    iconsDir: "node_modules/flag-icons/flags/4x3",
-    filenameNames: true,
-    preserveColors: true,
-    preserveIds: true,
-    svgAttributes: ' preserveAspectRatio="xMidYMid meet"',
-    defaultCategory: "country-flags",
-    iconWidth: 640,
+    id: "flag-icons", name: "Flag Icons",
+    description: "Country and territory flags as crisp 4:3 SVGs, ready to recolor, resize, and export.",
+    license: "MIT", licenseUrl: "https://github.com/lipis/flag-icons/blob/main/LICENSE",
+    sourceUrl: "https://github.com/lipis/flag-icons", attribution: "Panayiotis Lipiridis", style: "solid",
+    iconsDir: "node_modules/flag-icons/flags/4x3", filenameNames: true, preserveColors: true,
+    preserveIds: true, svgAttributes: ' preserveAspectRatio="xMidYMid meet"',
+    defaultCategory: "country-flags", iconWidth: 640,
   },
   {
-    id: "circle-flags",
-    name: "Circle Flags",
-    description:
-      "Over 400 minimal circular SVG flags for countries, regions, states, and languages.",
-    license: "MIT",
-    licenseUrl: "https://github.com/HatScripts/circle-flags/blob/gh-pages/LICENSE.md",
-    sourceUrl: "https://hatscripts.github.io/circle-flags/",
-    attribution: "HatScripts",
-    style: "solid",
-    iconsDir: "node_modules/circle-flags/flags",
-    filenameNames: true,
-    preserveColors: true,
-    preserveIds: true,
-    defaultCategory: "circle-flags",
-    iconWidth: 512,
+    id: "circle-flags", name: "Circle Flags",
+    description: "Over 400 minimal circular SVG flags for countries, regions, states, and languages.",
+    license: "MIT", licenseUrl: "https://github.com/HatScripts/circle-flags/blob/gh-pages/LICENSE.md",
+    sourceUrl: "https://hatscripts.github.io/circle-flags/", attribution: "HatScripts", style: "solid",
+    iconsDir: "node_modules/circle-flags/flags", filenameNames: true, preserveColors: true,
+    preserveIds: true, defaultCategory: "circle-flags", iconWidth: 512,
   },
   {
-    id: "skill-icons",
-    name: "Skill Icons",
-    description:
-      "Colorful icons for programming languages, frameworks, tools, and technologies, with dark and light variants.",
-    license: "MIT",
-    licenseUrl: "https://github.com/tandpfun/skill-icons/blob/main/LICENSE",
-    sourceUrl: "https://skillicons.dev/",
-    attribution: "tandpfun",
-    style: "solid",
-    iconsDir: "node_modules/skill-icons/icons",
-    preserveColors: true,
-    preserveIds: true,
-    defaultCategory: "skill-icons",
-    iconWidth: 256,
+    id: "skill-icons", name: "Skill Icons",
+    description: "Colorful icons for programming languages, frameworks, tools, and technologies, with dark and light variants.",
+    license: "MIT", licenseUrl: "https://github.com/tandpfun/skill-icons/blob/main/LICENSE",
+    sourceUrl: "https://skillicons.dev/", attribution: "tandpfun", style: "solid",
+    iconsDir: "node_modules/skill-icons/icons", preserveColors: true, preserveIds: true,
+    defaultCategory: "skill-icons", iconWidth: 256,
   },
   {
-    id: "pride-flags",
-    name: "Glyphary Pride Flags",
-    description:
-      "A growing library of LGBTQIA+ pride flags in full-color SVG. Flag colors and designs reflect community conventions, which may vary.",
-    license: "MIT",
-    licenseUrl: "",
+    id: "pride-flags", name: "Glyphary Pride Flags",
+    description: "A growing library of LGBTQIA+ pride flags in full-color SVG. Flag colors and designs reflect community conventions, which may vary.",
+    license: "MIT", licenseUrl: "",
     sourceUrl: "https://github.com/Glyphary-Icons/pride-flag-icons",
-    attribution: "Glyphary contributors",
-    style: "solid",
-    prideSource: true,
+    attribution: "Glyphary contributors", style: "solid", prideSource: true,
     groups: [
-      { category: "inclusive" },
-      { category: "orientation" },
-      { category: "gender" },
-      { category: "intersex" },
-      { category: "relationships" },
-      { category: "community" },
+      { category: "inclusive" }, { category: "orientation" }, { category: "gender" },
+      { category: "intersex" }, { category: "relationships" }, { category: "community" },
     ],
   },
   {
-    id: "pixel-icon-library",
-    name: "Pixel Icon Library",
-    description:
-      "HackerNoon’s pixel-perfect 24px icon set: 578 icons across regular, solid, brand, and curated category graphics.",
-    license: "CC BY 4.0",
-    licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
-    sourceUrl: "https://pixeliconlibrary.com/",
-    attribution: "HackerNoon",
-    style: "solid",
-    fill: "currentColor",
+    id: "pixel-icon-library", name: "Pixel Icon Library",
+    description: "HackerNoon’s pixel-perfect 24px icon set: 578 icons across regular, solid, brand, and curated category graphics.",
+    license: "CC BY 4.0", licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+    sourceUrl: "https://pixeliconlibrary.com/", attribution: "HackerNoon", style: "solid", fill: "currentColor",
     groups: [
       { category: "regular", iconsDir: "node_modules/@hackernoon/pixel-icon-library/icons/SVG/regular" },
       { category: "solid", iconsDir: "node_modules/@hackernoon/pixel-icon-library/icons/SVG/solid" },
       { category: "brands", iconsDir: "node_modules/@hackernoon/pixel-icon-library/icons/SVG/brands" },
-      {
-        category: "categories",
-        iconsDir: "node_modules/@hackernoon/pixel-icon-library/icons/SVG/purcats",
-      },
+      { category: "categories", iconsDir: "node_modules/@hackernoon/pixel-icon-library/icons/SVG/purcats" },
     ],
   },
 ];
@@ -237,17 +153,11 @@ function attrMap(raw) {
 
 /** Normalize one SVG source file into a compact, currentColor-only body. */
 function normalizeSvg(source, iconWidth, defaultFill, preserveColors = false, preserveIds = false, svgAttributes = "") {
-  let text = source
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<\?xml[^>]*\?>/g, "")
-    .trim();
-
+  let text = source.replace(/<!--[\s\S]*?-->/g, "").replace(/<\?xml[^>]*\?>/g, "").trim();
   const open = text.match(/<svg\b([^>]*)>/i);
   if (!open) throw new Error("no <svg> root");
-
   const attrs = attrMap(open[1]);
   const pairs = attrs.map(([k, v]) => [k, v]);
-
   const hasViewBox = pairs.some(([k]) => k.toLowerCase() === "viewbox");
   let width = iconWidth;
   let height = iconWidth;
@@ -257,124 +167,123 @@ function normalizeSvg(source, iconWidth, defaultFill, preserveColors = false, pr
     width = w ? parseFloat(w[1]) : iconWidth;
     height = h ? parseFloat(h[1]) : iconWidth;
   }
-
-  const kept = pairs
-    .filter(([k]) => !DROP_ATTRS.has(k) && KEEP_ATTRS.has(k))
-    .map(([k, v]) => {
-      if (k === "fill" || k === "stroke") {
-        if (preserveColors) return `${k}="${v}"`;
-        if (v === "none") return `${k}="none"`;
-        if (v === "currentColor") return `${k}="currentColor"`;
-        return `${k}="currentColor"`;
-      }
-      return `${k}="${v}"`;
-    });
-  if (defaultFill && !pairs.some(([k]) => k === "fill")) {
-    kept.push(`fill="${defaultFill}"`);
-  }
-
-  // Inner markup: everything between the root open tag and the closing </svg>.
+  const kept = pairs.filter(([k]) => !DROP_ATTRS.has(k) && KEEP_ATTRS.has(k)).map(([k, v]) => {
+    if (k === "fill" || k === "stroke") {
+      if (preserveColors) return `${k}="${v}"`;
+      if (v === "none" || v === "currentColor") return `${k}="${v}"`;
+      return `${k}="currentColor"`;
+    }
+    return `${k}="${v}"`;
+  });
+  if (defaultFill && !pairs.some(([k]) => k === "fill")) kept.push(`fill="${defaultFill}"`);
   const start = open.index + open[0].length;
   const endIdx = text.lastIndexOf("</svg>");
   let inner = (endIdx > start ? text.slice(start, endIdx) : text.slice(start)).trim();
-
-  // Strip stray ids inside the body so duplicate icons never collide in the DOM.
   if (!preserveIds) inner = inner.replace(/\s+id="[^"]*"/g, "");
   inner = inner.replace(/\s+class="[^"]*"/g, "");
   if (!preserveColors) {
     inner = inner.replace(/\b(fill|stroke)="(?!none|currentColor)[^"]*"/g, '$1="currentColor"');
     inner = inner.replace(/\s+fill="none"/g, "");
   }
-  inner = inner.replace(/\s+aria-[a-z-]+="[^"]*"/g, "");
-  inner = inner.replace(/\s+data-[\w-]+="[^"]*"/g, "");
-  // Collapse inter-tag whitespace but keep meaningful whitespace in <text>.
-  if (!/<text\b/i.test(inner)) {
-    inner = inner.replace(/>\s+</g, "><").replace(/\s*[\r\n]\s*/g, " ");
-  }
-
-  const viewBox = hasViewBox
-    ? pairs.find(([k]) => k.toLowerCase() === "viewbox")[1]
-    : `0 0 ${width} ${height}`;
-
-  const root = [
-    'xmlns="http://www.w3.org/2000/svg"',
-    `viewBox="${viewBox}"`,
-    ...kept.filter((a) => !/^viewBox=/i.test(a)),
-  ].join(" ");
-
+  inner = inner.replace(/\s+aria-[a-z-]+="[^"]*"/g, "").replace(/\s+data-[\w-]+="[^"]*"/g, "");
+  if (!/<text\b/i.test(inner)) inner = inner.replace(/>\s+</g, "><").replace(/\s*[\r\n]\s*/g, " ");
+  const viewBox = hasViewBox ? pairs.find(([k]) => k.toLowerCase() === "viewbox")[1] : `0 0 ${width} ${height}`;
+  const root = ['xmlns="http://www.w3.org/2000/svg"', `viewBox="${viewBox}"`, ...kept.filter((a) => !/^viewBox=/i.test(a))].join(" ");
   return `<svg ${root}${svgAttributes}>${inner}</svg>`;
 }
 
+function validatePrideSvg(source, name) {
+  if (typeof source !== "string" || !source.trim()) throw new Error(`empty SVG in ${name}`);
+  const svg = source.replace(/^\uFEFF/, "").trim();
+  const content = svg.replace(/^<\?xml\s+[^?]*\?>\s*/i, "").replace(/<!--[\s\S]*?-->/g, "");
+  if ((svg.match(/<!--/g)?.length ?? 0) !== (svg.match(/-->/g)?.length ?? 0) || /<!DOCTYPE|<!ENTITY|<\?(?!xml\b)/i.test(content)) {
+    throw new Error(`unsupported XML declaration in ${name}`);
+  }
+  if (!/<(?:[\w.-]+:)?svg\b[^>]*>/i.test(content) || !/<\/(?:[\w.-]+:)?svg\s*>\s*$/i.test(content)) {
+    throw new Error(`missing or malformed SVG root in ${name}`);
+  }
+
+  const decoded = content.replace(/&(?:#x([\da-f]+)|#(\d+)|colon|tab|newline);/gi, (entity, hex, decimal) => {
+    if (/^&#/i.test(entity)) {
+      const point = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
+      return Number.isInteger(point) && point > 0 && point <= 0x10ffff && !(point >= 0xd800 && point <= 0xdfff)
+        ? String.fromCodePoint(point)
+        : entity;
+    }
+    return entity.toLowerCase() === "&colon;" ? ":" : entity.toLowerCase() === "&tab;" ? "\t" : "\n";
+  });
+  if (/<\s*(?:[\w.-]+:)?(?:script|foreignObject|iframe|object|embed|audio|video)\b/i.test(decoded)) {
+    throw new Error(`unsupported active SVG element in ${name}`);
+  }
+
+  const attributes = /([^\s=<>]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)')/g;
+  let attribute;
+  while ((attribute = attributes.exec(decoded)) !== null) {
+    const key = attribute[1].toLowerCase();
+    const value = attribute[2] ?? attribute[3] ?? "";
+    if (/^on[a-z]/i.test(key)) throw new Error(`event handler attribute in ${name}`);
+    if ((key === "href" || key.endsWith(":href")) && value.trim() && !value.trim().startsWith("#")) {
+      throw new Error(`external SVG reference in ${name}`);
+    }
+    const normalized = value.toLowerCase();
+    if (/javascript\s*:|expression\s*\(|@import|-moz-binding/i.test(normalized)) {
+      throw new Error(`active SVG content in ${name}`);
+    }
+    for (const [, url] of normalized.matchAll(/url\s*\(\s*(['\"]?)(.*?)\1\s*\)/gi)) {
+      if (!url.trim().startsWith("#")) throw new Error(`external SVG resource in ${name}`);
+    }
+  }
+  const cssBlocks = decoded.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi);
+  for (const [, css] of cssBlocks) {
+    if (/javascript\s*:|expression\s*\(|@import|-moz-binding/i.test(css)) throw new Error(`active CSS content in ${name}`);
+    for (const [, url] of css.matchAll(/url\s*\(\s*(['\"]?)(.*?)\1\s*\)/gi)) {
+      if (!url.trim().startsWith("#")) throw new Error(`external SVG resource in ${name}`);
+    }
+  }
+  return svg;
+}
+
 function tagsFor(name) {
-  const words = name
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .split(/[^a-zA-Z0-9]+/)
-    .filter(Boolean)
-    .map((w) => w.toLowerCase());
+  const words = name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[^a-zA-Z0-9]+/).filter(Boolean).map((w) => w.toLowerCase());
   return Array.from(new Set(words));
 }
 
 function listSvgs(dir, pattern, recursive = false) {
   const abs = join(ROOT, dir);
   if (!existsSync(abs)) throw new Error(`missing icons dir: ${dir}`);
-  const files = recursive
-    ? readdirSync(abs, { recursive: true }).filter((f) => typeof f === "string")
-    : readdirSync(abs);
-  return files
-    .filter((f) => f.endsWith(".svg") && (!pattern || pattern.test(basename(f))))
-    .sort();
+  const files = recursive ? readdirSync(abs, { recursive: true }).filter((f) => typeof f === "string") : readdirSync(abs);
+  return files.filter((f) => f.endsWith(".svg") && (!pattern || pattern.test(basename(f)))).sort();
 }
 
-function buildSet(config) {
+async function buildSet(config) {
   if (config.prideSource) {
     const prideDir = process.env.PRIDE_FLAGS_DIR;
     const prideRoot = prideDir ? resolve(ROOT, prideDir) : "";
-    if (!prideRoot || !existsSync(join(prideRoot, "flags.json"))) {
-      console.warn("! PRIDE_FLAGS_DIR not set; reusing the checked-in Pride Flags manifest.");
-      const previous = JSON.parse(readFileSync(join(ROOT, "public", "manifests", "pride-flags.json"), "utf8"));
-      const categories = [...new Set(previous.icons.map((icon) => icon.category).filter(Boolean))];
-      const categoryPreviews = {};
-      const categoryCounts = {};
-      for (const icon of previous.icons) {
-        if (!icon.category) continue;
-        categoryPreviews[icon.category] ??= icon.svg;
-        categoryCounts[icon.category] = (categoryCounts[icon.category] ?? 0) + 1;
-      }
-      return {
-        ...config,
-        categories,
-        categoryPreviews,
-        categoryCounts,
-        filterCategories: categories,
-        browseCategories: categories,
-        count: previous.count,
-        preview: previous.icons.slice(0, 6).map((icon) => icon.svg),
-        icons: previous.icons,
-      };
+    if (prideDir && !existsSync(join(prideRoot, "flags.json"))) {
+      throw new Error(`PRIDE_FLAGS_DIR is set to ${prideDir}, but flags.json was not found there`);
     }
-    const entries = JSON.parse(readFileSync(join(prideRoot, "flags.json"), "utf8"));
+    const catalogText = prideRoot
+      ? readFileSync(join(prideRoot, "flags.json"), "utf8")
+      : await fetchPrideSource("flags.json");
+    const entries = JSON.parse(catalogText);
+    if (!Array.isArray(entries) || entries.length === 0) throw new Error("Pride Flags source catalog is empty or invalid");
+    console.log(`  ↳ Reading ${entries.length} Pride Flag entries from ${prideRoot || "Glyphary-Icons/pride-flag-icons (main)"}`);
     const categories = [...new Set(entries.map((entry) => entry.category))];
     const categoryPreviews = {};
     const categoryCounts = {};
-    const icons = entries.map((entry) => {
+    const icons = await Promise.all(entries.map(async (entry) => {
       if (!entry.name || !entry.category || !Array.isArray(entry.tags) || typeof entry.path !== "string" || !/^flags\/[a-z-]+\/[a-z0-9-]+\.svg$/.test(entry.path)) {
         throw new Error(`invalid pride flag catalog entry: ${entry.name ?? "(unnamed)"}`);
       }
-      const svg = readFileSync(join(prideRoot, entry.path), "utf8").trim();
-      if (
-        !svg.startsWith("<svg ") ||
-        !svg.endsWith("</svg>") ||
-        /<script\b|<foreignObject\b|(?:href|style|on[a-z]+)\s*=/i.test(svg) ||
-        !/<svg\b[^>]*xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(svg) ||
-        !/<svg\b[^>]*viewBox="\d+ \d+ \d+ \d+"/.test(svg)
-      ) {
-        throw new Error(`invalid or unsafe SVG asset for ${entry.name}`);
-      }
+      const svgText = prideRoot
+        ? readFileSync(join(prideRoot, entry.path), "utf8")
+        : await fetchPrideSource(entry.path);
+      const svg = validatePrideSvg(svgText, entry.name);
       const icon = { name: entry.name, tags: [...new Set([...tagsFor(entry.name), ...(entry.tags ?? []).flatMap(tagsFor), "first-party-svg"])], category: entry.category, svg };
       categoryPreviews[entry.category] ??= svg;
       categoryCounts[entry.category] = (categoryCounts[entry.category] ?? 0) + 1;
       return icon;
-    });
+    }));
     const { prideSource: _prideSource, groups: _groups, ...meta } = config;
     return {
       ...meta,
@@ -388,37 +297,22 @@ function buildSet(config) {
       icons,
     };
   }
-
   const groups = config.groups ?? [{ category: undefined, iconsDir: config.iconsDir }];
   const icons = [];
   const categories = [];
-
   for (const group of groups) {
-    if (group.category && !categories.includes(group.category)) {
-      categories.push(group.category);
-    }
+    if (group.category && !categories.includes(group.category)) categories.push(group.category);
     for (const file of listSvgs(group.iconsDir, group.filePattern, group.recursive)) {
       const raw = readFileSync(join(ROOT, group.iconsDir, file), "utf8");
       const filename = basename(file, ".svg");
-      const name = group.filenameNames && config.id !== "circle-flags"
-        ? countryNames[filename.toLowerCase()] ?? filename
-        : filename;
-      const filenameWithoutStyle = filename
-        .replace(/-(original|plain|line)(-wordmark)?$/i, "")
-        .replace(config.id === "phosphor" ? new RegExp(`-${group.category}$`) : /$^/, "");
+      const name = group.filenameNames && config.id !== "circle-flags" ? countryNames[filename.toLowerCase()] ?? filename : filename;
+      const filenameWithoutStyle = filename.replace(/-(original|plain|line)(-wordmark)?$/i, "").replace(config.id === "phosphor" ? new RegExp(`-${group.category}$`) : /$^/, "");
       const iconName = filenameWithoutStyle || filename;
       const isWordmark = filename.endsWith("-wordmark");
       if (config.includeWordmarks === false && isWordmark) continue;
       let svg;
       try {
-        svg = normalizeSvg(
-          raw,
-          config.iconWidth ?? (config.style === "solid" ? 16 : 24),
-          config.fill,
-          config.preserveColors,
-          config.preserveIds,
-          config.svgAttributes,
-        );
+        svg = normalizeSvg(raw, config.iconWidth ?? (config.style === "solid" ? 16 : 24), config.fill, config.preserveColors, config.preserveIds, config.svgAttributes);
       } catch (err) {
         console.warn(`  ! skipping ${config.id}/${file}: ${err.message}`);
         continue;
@@ -427,7 +321,7 @@ function buildSet(config) {
       let displayName = iconName;
       let extraTags = [];
       if (config.id === "circle-flags") {
-        displayName = countryNames[filename.toLowerCase()] ?? filename.replaceAll("_", " ").replace(/\\b\\w/g, (letter) => letter.toUpperCase());
+        displayName = countryNames[filename.toLowerCase()] ?? filename.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
         extraTags = [filename.toLowerCase(), "flag", "country", "region"];
         const baseCode = filename.split("-")[0].toLowerCase();
         if (baseCode !== filename.toLowerCase()) extraTags.push(baseCode, baseCode.toUpperCase());
@@ -437,9 +331,7 @@ function buildSet(config) {
         if (variant) {
           category = variant[1].toLowerCase();
           displayName = filename.slice(0, -variant[0].length);
-        } else {
-          category = "standard";
-        }
+        } else category = "standard";
         extraTags = [filename.toLowerCase(), "technology", "developer"];
       }
       const icon = {
@@ -454,21 +346,15 @@ function buildSet(config) {
         if (config.id === "circle-flags") icon.tags.push(filename.toUpperCase());
         if (config.id === "skill-icons") icon.tags.push(config.defaultCategory);
       }
-      if (config.id === "pixel-icon-library" && group.category === "categories") {
-        icon.tags.push(...tagsFor(name));
-      }
+      if (config.id === "pixel-icon-library" && group.category === "categories") icon.tags.push(...tagsFor(name));
       icons.push(icon);
     }
   }
-
   if (icons.length === 0) throw new Error(`set ${config.id} produced no icons`);
-
   const { iconsDir: _a, groups: _b, sourceJson: _sourceJson, prideSource: _prideSource, ...meta } = config;
   const categoryPreviews = {};
   const categoryCounts = {};
-  const previewIndex = ["flag-icons", "circle-flags"].includes(config.id)
-    ? icons.findIndex((icon) => icon.tags.includes("us"))
-    : -1;
+  const previewIndex = ["flag-icons", "circle-flags"].includes(config.id) ? icons.findIndex((icon) => icon.tags.includes("us")) : -1;
   const filterCategories = [];
   for (const icon of icons) {
     if (!icon.category) continue;
@@ -485,7 +371,6 @@ function buildSet(config) {
       icons[index].name = countryNames[countryCode] ?? icons[index].name;
     }
   }
-
   return {
     ...meta,
     categories,
@@ -496,16 +381,14 @@ function buildSet(config) {
     count: icons.length,
     preview: ["flag-icons", "circle-flags"].includes(config.id) && previewIndex >= 0
       ? [icons[previewIndex].svg, ...icons.filter((_, index) => index !== previewIndex).slice(0, 5).map((icon) => icon.svg)]
-      : icons.slice(0, 6).map((i) => i.svg),
+      : icons.slice(0, 6).map((icon) => icon.svg),
     icons,
   };
 }
 
 mkdirSync(join(ROOT, "public", "manifests"), { recursive: true });
 mkdirSync(join(ROOT, "src", "data"), { recursive: true });
-
 const summaries = [];
-
 const countryNames = {
   ac: "Ascension Island", ad: "Andorra", ae: "United Arab Emirates", af: "Afghanistan",
   ag: "Antigua and Barbuda", ai: "Anguilla", al: "Albania", am: "Armenia", ao: "Angola",
@@ -561,7 +444,7 @@ const countryNames = {
 };
 
 for (const config of SETS) {
-  const set = buildSet(config);
+  const set = await buildSet(config);
   const full = {
     setId: set.setId ?? set.id,
     id: set.id,
