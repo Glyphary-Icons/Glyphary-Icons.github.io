@@ -2,6 +2,15 @@
  * Glyphary — design tokens
  * ------------------------------------------------------------------ */
 
+/* Brand typeface: Space Grotesk, self-hosted (SIL OFL 1.1 — see BRAND.md). */
+@font-face {
+  font-family: "Glyphary Brand";
+  src: url("/fonts/space-grotesk-latin.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
 
@@ -30,6 +39,8 @@
     "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
+  --font-brand: "Glyphary Brand", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 [data-theme="dark"] {
@@ -83,6 +94,7 @@ h1,
 h2,
 h3 {
   margin: 0;
+  font-family: var(--font-brand);
   font-weight: 620;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -179,8 +191,16 @@ button {
   font-size: 16px;
 }
 
-.brand-mark {
+.brand-wordmark {
+  display: block;
+  height: 26px;
   color: var(--accent);
+}
+
+.brand-wordmark svg {
+  display: block;
+  height: 100%;
+  width: auto;
 }
 
 .header-actions {

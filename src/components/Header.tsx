@@ -1,3 +1,4 @@
+import wordmarkSvg from "../brand/glyphary-wordmark.svg?raw";
 import type { Theme } from "../hooks/useTheme";
 
 interface HeaderProps {
@@ -12,21 +13,12 @@ export function Header({ theme, onToggleTheme, activePage }: HeaderProps) {
   return (
     <header className="header">
       <div className="container header-inner">
-        <a className="brand" href="#/">
-          <svg
-            className="brand-mark"
-            viewBox="0 0 24 24"
-            width="22"
-            height="22"
-            fill="currentColor"
+        <a className="brand" href="#/" aria-label="Glyphary — home">
+          <span
+            className="brand-wordmark"
             aria-hidden="true"
-          >
-            <rect x="2.5" y="2.5" width="8.5" height="8.5" rx="2.4" />
-            <rect x="13" y="2.5" width="8.5" height="8.5" rx="2.4" opacity="0.35" />
-            <rect x="2.5" y="13" width="8.5" height="8.5" rx="2.4" opacity="0.35" />
-            <rect x="13" y="13" width="8.5" height="8.5" rx="2.4" />
-          </svg>
-          <span className="brand-name">Glyphary</span>
+            dangerouslySetInnerHTML={{ __html: wordmarkSvg }}
+          />
         </a>
 
         <nav className="header-actions" aria-label="Site">
