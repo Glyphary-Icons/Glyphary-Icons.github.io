@@ -232,14 +232,14 @@ function validatePrideSvg(source, name) {
     if (/javascript\s*:|expression\s*\(|@import|-moz-binding/i.test(normalized)) {
       throw new Error(`active SVG content in ${name}`);
     }
-    for (const [, url] of normalized.matchAll(/url\s*\(\s*(['\"]?)(.*?)\1\s*\)/gi)) {
+    for (const [, , url] of normalized.matchAll(/url\s*\(\s*(['\"]?)(.*?)\1\s*\)/gi)) {
       if (!url.trim().startsWith("#")) throw new Error(`external SVG resource in ${name}`);
     }
   }
   const cssBlocks = decoded.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi);
   for (const [, css] of cssBlocks) {
     if (/javascript\s*:|expression\s*\(|@import|-moz-binding/i.test(css)) throw new Error(`active CSS content in ${name}`);
-    for (const [, url] of css.matchAll(/url\s*\(\s*(['\"]?)(.*?)\1\s*\)/gi)) {
+    for (const [, , url] of css.matchAll(/url\s*\(\s*(['\"]?)(.*?)\1\s*\)/gi)) {
       if (!url.trim().startsWith("#")) throw new Error(`external SVG resource in ${name}`);
     }
   }
