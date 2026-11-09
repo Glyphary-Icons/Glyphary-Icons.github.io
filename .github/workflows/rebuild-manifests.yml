@@ -44,4 +44,5 @@ jobs:
           body: "Regenerate static icon manifests from the latest source assets, including the separate Glyphary Pride Flags repository."
           add-paths: |
             public/manifests/*.json
+            public/manifests/*/*.bin
             src/data/summaries.json

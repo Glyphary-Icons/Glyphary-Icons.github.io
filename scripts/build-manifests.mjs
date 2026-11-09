@@ -10,8 +10,9 @@
  *
  * Run with: npm run manifests
  */
-import { mkdirSync, readFileSync, readdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { join, basename, resolve } from "node:path";
+import { gzipSync } from "node:zlib";
 
 const ROOT = process.cwd();
 const PRIDE_FLAGS_RAW_URL = "https://raw.githubusercontent.com/Glyphary-Icons/pride-flag-icons/main/";
@@ -85,6 +86,8 @@ const SETS = [
     description: "Programming language, framework, and developer-tool logos in original and monochrome variants.",
     license: "MIT", licenseUrl: "https://github.com/devicons/devicon/blob/master/LICENSE",
     sourceUrl: "https://devicon.dev/", attribution: "Devicon contributors", style: "solid", includeWordmarks: false,
+    // Recognizable logos used by the featured collection artwork on the site.
+    showcase: ["javascript", "typescript", "react", "nodejs", "python", "docker", "rust", "go"],
     groups: [
       { category: "original", iconsDir: "node_modules/devicon/icons", filePattern: /-original(-wordmark)?.svg$/, recursive: true },
       { category: "plain", iconsDir: "node_modules/devicon/icons", filePattern: /-plain(-wordmark)?.svg$/, recursive: true },
@@ -284,6 +287,11 @@ async function buildSet(config) {
       categoryCounts[entry.category] = (categoryCounts[entry.category] ?? 0) + 1;
       return icon;
     }));
+    const showcaseNames = [
+      "Progress Pride Flag", "Transgender Pride Flag", "Lesbian Pride Flag",
+      "Bisexual Pride Flag", "Non-binary Pride Flag", "Asexual Pride Flag",
+      "Pansexual Pride Flag", "Intersex Pride Flag",
+    ];
     const { prideSource: _prideSource, groups: _groups, ...meta } = config;
     return {
       ...meta,
@@ -294,6 +302,10 @@ async function buildSet(config) {
       browseCategories: categories,
       count: icons.length,
       preview: icons.slice(0, 6).map((icon) => icon.svg),
+      // Ordered, recognizable flags used by the featured collection artwork on the site.
+      showcase: showcaseNames
+        .map((name) => icons.find((icon) => icon.name === name)?.svg)
+        .filter(Boolean),
       icons,
     };
   }
@@ -351,7 +363,10 @@ async function buildSet(config) {
     }
   }
   if (icons.length === 0) throw new Error(`set ${config.id} produced no icons`);
-  const { iconsDir: _a, groups: _b, sourceJson: _sourceJson, prideSource: _prideSource, ...meta } = config;
+  const showcase = (config.showcase ?? [])
+    .map((name) => icons.find((icon) => icon.name === name)?.svg)
+    .filter(Boolean);
+  const { iconsDir: _a, groups: _b, sourceJson: _sourceJson, prideSource: _prideSource, showcase: _showcase, ...meta } = config;
   const categoryPreviews = {};
   const categoryCounts = {};
   const previewIndex = ["flag-icons", "circle-flags"].includes(config.id) ? icons.findIndex((icon) => icon.tags.includes("us")) : -1;
@@ -382,8 +397,39 @@ async function buildSet(config) {
     preview: ["flag-icons", "circle-flags"].includes(config.id) && previewIndex >= 0
       ? [icons[previewIndex].svg, ...icons.filter((_, index) => index !== previewIndex).slice(0, 5).map((icon) => icon.svg)]
       : icons.slice(0, 6).map((icon) => icon.svg),
+    ...(showcase.length ? { showcase } : {}),
     icons,
   };
+}
+
+/**
+ * The full catalog is far larger than static hosts accept in one upload (Phosphor
+ * alone is 5.4 MB of SVG source). Every manifest is gzipped and cut into small
+ * parts, with a metadata index at `<set>.json`; the app joins and inflates them.
+ */
+const MANIFEST_PART_BYTES = 256 * 1024;
+
+function writeManifest(id, full) {
+  const dir = join(ROOT, "public", "manifests", id);
+  rmSync(dir, { recursive: true, force: true });
+
+  const gzipped = gzipSync(Buffer.from(JSON.stringify(full), "utf8"), { level: 9 });
+  const parts = [];
+  for (let offset = 0; offset < gzipped.length; offset += MANIFEST_PART_BYTES) {
+    parts.push(gzipped.subarray(offset, offset + MANIFEST_PART_BYTES));
+  }
+
+  mkdirSync(dir, { recursive: true });
+  parts.forEach((part, index) => {
+    writeFileSync(join(dir, `${index}.bin`), part);
+  });
+
+  const { icons: _icons, ...meta } = full;
+  writeFileSync(
+    join(ROOT, "public", "manifests", `${id}.json`),
+    JSON.stringify({ ...meta, count: full.icons.length, parts: parts.length, encoding: "gzip" }),
+  );
+  return { parts: parts.length, gzipBytes: gzipped.length };
 }
 
 mkdirSync(join(ROOT, "public", "manifests"), { recursive: true });
@@ -459,7 +505,7 @@ for (const config of SETS) {
     count: set.count,
     icons: set.icons,
   };
-  writeFileSync(join(ROOT, "public", "manifests", `${config.id}.json`), JSON.stringify(full));
+  const manifestParts = writeManifest(config.id, full);
   summaries.push({
     id: set.id,
     name: set.name,
@@ -476,9 +522,13 @@ for (const config of SETS) {
     browseCategories: set.browseCategories,
     categoryPreviews: set.categoryPreviews,
     categoryCounts: set.categoryCounts,
+    ...(set.showcase ? { showcase: set.showcase } : {}),
   });
   const bytes = JSON.stringify(full).length;
-  console.log(`✓ ${set.name}: ${set.count} icons (${(bytes / 1024).toFixed(0)} KB)`);
+  console.log(
+    `✓ ${set.name}: ${set.count} icons (${(bytes / 1024).toFixed(0)} KB raw → ` +
+      `${(manifestParts.gzipBytes / 1024).toFixed(0)} KB gzip, ${manifestParts.parts} part${manifestParts.parts === 1 ? "" : "s"})`,
+  );
 }
 
 writeFileSync(join(ROOT, "src", "data", "summaries.json"), JSON.stringify(summaries, null, 2));

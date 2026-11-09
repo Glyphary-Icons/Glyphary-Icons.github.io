@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { IconEntry, IconManifest } from "../types";
 import { findSummary, loadManifest } from "../data/sets";
+import { CategoryPills } from "../components/CategoryPills";
 import { ColorPicker } from "../components/ColorPicker";
 import { IconGrid } from "../components/IconGrid";
 import { IconPanel } from "../components/IconPanel";
 import { downloadZip } from "../lib/download";
 import { setSupportsRecolor } from "../lib/color";
+import { labelFor } from "../lib/text";
+
+const GRID_PAGE_SIZE = 240;
 
 interface SetPageProps {
   setId: string;
@@ -19,6 +23,8 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState(initialQuery ?? "");
+  const deferredQuery = useDeferredValue(query);
+  const [visibleCount, setVisibleCount] = useState(GRID_PAGE_SIZE);
   const [category, setCategory] = useState(
     initialCategory === "categories" || initialCategory === "skill-icons"
       ? "all"
@@ -57,7 +63,7 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
 
   const visible = useMemo(() => {
     if (!manifest) return [];
-    const needle = query.trim().toLowerCase();
+    const needle = deferredQuery.trim().toLowerCase();
     return manifest.icons.filter((icon) => {
       if (topicMode && icon.category !== "categories") return false;
       if (skillMode && !["original", "plain", "line"].includes(icon.category ?? "")) return false;
@@ -71,7 +77,14 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
         (term) => icon.name.toLowerCase().includes(term) || icon.tags.some((tag) => tag.toLowerCase().includes(term)),
       );
     });
-  }, [manifest, query, category, topicMode, skillMode, flagMode, skillIconMode, setId]);
+  }, [manifest, deferredQuery, category, topicMode, skillMode, flagMode, skillIconMode, setId]);
+
+  const page = useMemo(() => visible.slice(0, visibleCount), [visible, visibleCount]);
+
+  // A new query or filter restarts paging so results always begin at the top.
+  useEffect(() => {
+    setVisibleCount(GRID_PAGE_SIZE);
+  }, [manifest, deferredQuery, category, topicMode, skillMode, flagMode, skillIconMode]);
 
   if (!summary) {
     return (
@@ -86,6 +99,15 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
       </section>
     );
   }
+
+  const wideGlyphs = summary.id === "flag-icons" || summary.id === "pride-flags";
+
+  const searchPlaceholder =
+    summary.id === "pride-flags"
+      ? "Search pride flags…"
+      : ["Flag Icons", "Circle Flags"].includes(summary.name)
+        ? "Search by country or code…"
+        : `Search ${summary.count.toLocaleString("en-US")}…`;
 
   const handleZip = () => {
     if (!manifest) return;
@@ -134,10 +156,9 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
           <div className="set-head-main">
             <div className="set-title-row">
               <h1>{summary.name}</h1>
+              {summary.id === "pride-flags" && <span className="badge">Made by Glyphary</span>}
               <span className="chip">{summary.license}</span>
-              {summary.categories.length > 1 && (
-                <span className="chip">{summary.categories.join(" · ")}</span>
-              )}
+              <CategoryPills categories={summary.categories} />
             </div>
             <p className="set-desc">{summary.description}</p>
             <p className="set-sub">
@@ -194,7 +215,7 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
             <input
               className="search-input"
               type="search"
-              placeholder={`Search ${["Flag Icons", "Circle Flags"].includes(summary.name) ? "by country or code" : summary.count.toLocaleString("en-US")}…`}
+              placeholder={searchPlaceholder}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               aria-label="Search icons"
@@ -217,7 +238,7 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
                   }}
                   aria-pressed={category === option}
                 >
-                  {option === "all" ? "All types" : option}
+                  {option === "all" ? "All types" : labelFor(option)}
                 </button>
               ))}
             </div>
@@ -239,7 +260,7 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
                   setCategory(variant);
                   setQuery("");
                 }}
-              >                {variant === "all" ? "All themes" : variant}
+              >                {variant === "all" ? "All themes" : labelFor(variant)}
               </button>
             ))}
           </div>
@@ -257,7 +278,7 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
                   setQuery("");
                 }}
               >
-                {variant}
+                {labelFor(variant)}
               </button>
             ))}
           </div>
@@ -336,14 +357,34 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
         )}
 
         {manifest && visible.length > 0 && (
-          <IconGrid
-            icons={visible}
-            color={color}
-            onSelect={(icon, trigger) => {
-              restoreFocusRef.current = trigger;
-              setSelected(icon);
-            }}
-          />
+          <>
+            <IconGrid
+              icons={page}
+              color={color}
+              glyphWidth={wideGlyphs ? 58 : undefined}
+              glyphHeight={wideGlyphs ? 42 : undefined}
+              className={wideGlyphs ? "icon-grid-wide" : undefined}
+              onSelect={(icon, trigger) => {
+                restoreFocusRef.current = trigger;
+                setSelected(icon);
+              }}
+            />
+            {page.length < visible.length && (
+              <div className="grid-more">
+                <span className="hint">
+                  Showing {page.length.toLocaleString("en-US")} of{" "}
+                  {visible.length.toLocaleString("en-US")} icons
+                </span>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => setVisibleCount((count) => count + GRID_PAGE_SIZE)}
+                >
+                  Show more
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
 

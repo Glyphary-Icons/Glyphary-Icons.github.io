@@ -16,6 +16,8 @@ export interface SetSummary {
   browseCategories?: string[];
   categoryPreviews?: Record<string, string>;
   categoryCounts?: Record<string, number>;
+  /** Ordered, recognizable previews used by featured collection cards. */
+  showcase?: string[];
 }
 
 export interface IconEntry {

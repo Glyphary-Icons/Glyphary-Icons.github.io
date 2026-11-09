@@ -6,9 +6,20 @@ interface IconGridProps {
   icons: IconEntry[];
   color: string;
   onSelect: (icon: IconEntry, trigger: HTMLElement) => void;
+  /** Override the square glyph box, e.g. to show 4:3 flags at their natural shape. */
+  glyphWidth?: number;
+  glyphHeight?: number;
+  className?: string;
 }
 
-export function IconGrid({ icons, color, onSelect }: IconGridProps) {
+export function IconGrid({
+  icons,
+  color,
+  onSelect,
+  glyphWidth,
+  glyphHeight,
+  className,
+}: IconGridProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
     const grid = event.currentTarget;
@@ -31,7 +42,7 @@ export function IconGrid({ icons, color, onSelect }: IconGridProps) {
   };
 
   return (
-    <div className="icon-grid" onKeyDown={handleKeyDown}>
+    <div className={className ? `icon-grid ${className}` : "icon-grid"} onKeyDown={handleKeyDown}>
       {icons.map((icon) => (
         <button
           key={`${icon.category ?? "default"}-${icon.name}`}
@@ -41,7 +52,7 @@ export function IconGrid({ icons, color, onSelect }: IconGridProps) {
           aria-label={`Open ${icon.name}${icon.category ? ` (${icon.category})` : ""}`}
         >
           <span className="icon-cell-glyph" style={{ color }}>
-            <IconGlyph svg={icon.svg} size={26} />
+            <IconGlyph svg={icon.svg} width={glyphWidth} height={glyphHeight} />
           </span>
           <span className="icon-cell-name">{icon.name}</span>
         </button>

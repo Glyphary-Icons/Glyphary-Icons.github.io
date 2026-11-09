@@ -1,7 +1,8 @@
 # Glyphary
 
-A minimal light/dark website for browsing open-source SVG icon sets and downloading
-individual icons or whole sets in custom colors, as SVG or PNG.
+A light/dark website that leads with Glyphary's own pride flag library and focused custom
+collections, alongside a catalog of open-source SVG icon sets. Browse any icon, download it or a
+whole set in a custom color, as SVG or PNG.
 
 Everything runs client-side — no backend, no database, no accounts, no analytics.
 
@@ -20,9 +21,15 @@ Everything runs client-side — no backend, no database, no accounts, no analyti
   (Feather, Lucide, Heroicons, Bootstrap Icons, Phosphor, Devicon, Flag Icons, Circle Flags,
   Skill Icons, and HackerNoon's Pixel Icon Library), plus the separately maintained Glyphary Pride
   Flags repository. It normalizes SVGs as needed and writes one JSON manifest per set into
-  `public/manifests/`. Each set is fetched lazily on its own route. The pride collection source is
-  checked out separately by the manual manifest-refresh workflow.
-- `src/data/summaries.json` holds the small card metadata rendered on the home page.
+  `public/manifests/`. Each set is fetched lazily on its own route. Manifests are gzipped and split
+  into small binary parts beside a metadata index, because the largest sets (Phosphor is 5.4 MB of
+  SVG source) exceed static-host upload limits as single files; the app joins and inflates the parts
+  in the browser with `fflate`. The pride collection source is checked out separately by the manual
+  manifest-refresh workflow.
+- `src/data/summaries.json` holds the small card metadata rendered on the home page, including a
+  curated `showcase` of previews that the featured collection cards use for their artwork.
+- `src/data/sets.ts` splits the catalog into the custom collections featured across the site and
+  the general-purpose libraries, and resolves the deep link used by each collection card.
 - Recoloring is a `currentColor` substitution; SVG export keeps `currentColor` when the
   "theme color" option is selected, PNG export rasterizes through a canvas at 16–512 px,
   and whole-set downloads are zipped in the browser with `fflate`.

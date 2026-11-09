@@ -1,4 +1,5 @@
 import type { SetSummary } from "../types";
+import { CategoryPills } from "./CategoryPills";
 import { IconGlyph } from "./IconGlyph";
 
 export function SetCard({ set }: { set: SetSummary }) {
@@ -16,9 +17,7 @@ export function SetCard({ set }: { set: SetSummary }) {
       <p className="set-card-desc">{set.description}</p>
       <div className="set-card-meta">
         <span className="chip">{set.style === "stroke" ? "Stroke" : "Solid"}</span>
-        {set.categories.length > 1 && (
-          <span className="chip">{set.categories.join(" · ")}</span>
-        )}
+        <CategoryPills categories={set.categories} />
         <span className="chip chip-muted">{set.license}</span>
       </div>
     </a>

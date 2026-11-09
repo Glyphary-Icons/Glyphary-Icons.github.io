@@ -282,9 +282,11 @@ button {
 
 .chip {
   display: inline-flex;
+  flex: none;
   align-items: center;
   height: 24px;
   padding: 0 10px;
+  white-space: nowrap;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--bg-subtle);
@@ -371,6 +373,87 @@ button {
   justify-content: center;
 }
 
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 34px;
+  margin-top: 34px;
+}
+
+.hero-stats > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hero-stats strong {
+  font-size: 18px;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stats span {
+  font-size: 10.5px;
+  font-weight: 560;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.hero-ribbon-wrap {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.hero-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 780px;
+}
+
+.hero-ribbon-flag {
+  width: 76px;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.hero-ribbon-flag:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+
+.hero-ribbon-flag svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-ribbon-caption {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.hero-ribbon-caption:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ------------------------------------------------------------------ *
  * Sections
  * ------------------------------------------------------------------ */
@@ -381,9 +464,10 @@ button {
 
 .section-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px 16px;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 22px;
@@ -403,6 +487,7 @@ button {
   color: var(--accent);
   font-size: 13px;
   font-weight: 550;
+  white-space: nowrap;
 }
 
 .text-link:hover {
@@ -447,24 +532,25 @@ button {
   margin-top: 24px;
 }
 
-.specialty-library-group {
-  margin-top: 42px !important;
-  padding: 30px 24px 24px;
+.custom-library-group {
+  margin-top: 10px;
+  padding: 30px 24px 26px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-subtle);
 }
 
-.specialty-library-group .eyebrow {
+.custom-library-group .eyebrow {
   margin-bottom: 8px;
   font-size: 10px;
 }
 
 .library-group-head {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
-  gap: 16px;
+  gap: 10px 16px;
   padding-bottom: 16px;
 }
 
@@ -596,14 +682,6 @@ button {
   max-height: 23px;
 }
 
-.library-card-specialty .library-card-preview-row {
-  color: var(--fg-muted);
-}
-
-.library-card-specialty:hover .library-card-preview-row {
-  color: var(--accent);
-}
-
 .topic-categories {
   display: flex;
   flex-wrap: wrap;
@@ -691,6 +769,163 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* Custom collections */
+
+.custom-section {
+  scroll-margin-top: 84px;
+}
+
+.custom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.collection-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.collection-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px -22px rgba(15, 15, 22, 0.5);
+}
+
+.collection-card-featured {
+  grid-column: span 2;
+}
+
+.collection-card-art {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.collection-card-featured .collection-card-art {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 20px;
+}
+
+.collection-card-tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: 9%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.collection-card:hover .collection-card-tile {
+  border-color: var(--border-strong);
+  color: var(--accent);
+}
+
+.collection-card-tile svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.collection-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+
+.collection-card-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.collection-card-heading h3 {
+  font-size: 15.5px;
+}
+
+.collection-card-featured .collection-card-heading h3 {
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.collection-card-logo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  color: var(--accent);
+}
+
+.collection-card-logo-devicon,
+.collection-card-logo-circle-flags {
+  color: var(--fg);
+}
+
+.collection-card-logo-circle-flags .glyph {
+  border-radius: 50%;
+}
+
+.collection-card-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+}
+
+.collection-card-featured .collection-card-description {
+  font-size: 13.5px;
+  max-width: 62ch;
+}
+
+.collection-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+  font-size: 12px;
+  color: var(--fg-faint);
+}
+
+.collection-card-meta .chip {
+  height: 22px;
+  flex: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 620;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* Steps + CTA */
@@ -837,6 +1072,16 @@ button {
   background: var(--surface);
 }
 
+/* Keep search, filters, and color controls in reach on long set pages. */
+@media (min-width: 861px) {
+  .toolbar {
+    position: sticky;
+    top: 68px;
+    z-index: 20;
+    box-shadow: 0 12px 26px -24px rgba(15, 15, 22, 0.75);
+  }
+}
+
 .search-wrap {
   position: relative;
   flex: 1 1 260px;
@@ -887,6 +1132,27 @@ button {
 
 .results-note {
   margin: 20px 0 14px;
+  font-size: 13px;
+  color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 26px 0 6px;
+}
+
+.empty-state-hint {
+  font-size: 13px;
+  color: var(--fg-faint);
+}
+
+.library-result-note {
+  margin-top: 14px;
   font-size: 13px;
   color: var(--fg-faint);
   font-variant-numeric: tabular-nums;
@@ -994,6 +1260,11 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
   gap: 8px;
+}
+
+/* Flag artwork is 4:3 or 3:2, so give it wider cells and a wider glyph box. */
+.icon-grid.icon-grid-wide {
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
 }
 
 .icon-cell {
@@ -1317,6 +1588,22 @@ button {
 
   .library-intro {
     padding-top: 36px;
+  }
+
+  .custom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .collection-card-featured {
+    grid-column: span 1;
+  }
+
+  .custom-library-group {
+    padding: 22px 16px 20px;
+  }
+
+  .hero-ribbon-flag {
+    width: 64px;
   }
 
   .library-group-head {
