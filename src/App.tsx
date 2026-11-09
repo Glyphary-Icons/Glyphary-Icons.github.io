@@ -3,6 +3,7 @@ import { useRoute } from "./hooks/useHashRoute";
 import { useTheme } from "./hooks/useTheme";
 import { HomePage } from "./pages/HomePage";
 import { LibrariesPage } from "./pages/LibrariesPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { SetPage } from "./pages/SetPage";
 
 export default function App() {
@@ -14,7 +15,9 @@ export default function App() {
       <Header
         theme={theme}
         onToggleTheme={toggleTheme}
-        activePage={route.page === "set" ? "libraries" : route.page}
+        activePage={
+          route.page === "set" ? "libraries" : route.page === "notfound" ? "home" : route.page
+        }
       />
 
       <main className="main">
@@ -27,6 +30,8 @@ export default function App() {
           />
         ) : route.page === "libraries" ? (
           <LibrariesPage />
+        ) : route.page === "notfound" ? (
+          <NotFoundPage path={route.path} />
         ) : (
           <HomePage />
         )}

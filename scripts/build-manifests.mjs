@@ -86,6 +86,9 @@ const SETS = [
     description: "Programming language, framework, and developer-tool logos in original and monochrome variants.",
     license: "MIT", licenseUrl: "https://github.com/devicons/devicon/blob/master/LICENSE",
     sourceUrl: "https://devicon.dev/", attribution: "Devicon contributors", style: "solid", includeWordmarks: false,
+    // Devicon's marks are brand-coloured; flattening them to currentColor turned
+    // most originals into solid black squares.
+    preserveColors: true, preserveIds: true, scopeIds: true,
     // Recognizable logos used by the featured collection artwork on the site.
     showcase: ["javascript", "typescript", "react", "nodejs", "python", "docker", "rust", "go"],
     groups: [
@@ -155,7 +158,7 @@ function attrMap(raw) {
 }
 
 /** Normalize one SVG source file into a compact, currentColor-only body. */
-function normalizeSvg(source, iconWidth, defaultFill, preserveColors = false, preserveIds = false, svgAttributes = "") {
+function normalizeSvg(source, iconWidth, defaultFill, preserveColors = false, preserveIds = false, svgAttributes = "", idScope = "") {
   let text = source.replace(/<!--[\s\S]*?-->/g, "").replace(/<\?xml[^>]*\?>/g, "").trim();
   const open = text.match(/<svg\b([^>]*)>/i);
   if (!open) throw new Error("no <svg> root");
@@ -182,7 +185,16 @@ function normalizeSvg(source, iconWidth, defaultFill, preserveColors = false, pr
   const start = open.index + open[0].length;
   const endIdx = text.lastIndexOf("</svg>");
   let inner = (endIdx > start ? text.slice(start, endIdx) : text.slice(start)).trim();
-  if (!preserveIds) inner = inner.replace(/\s+id="[^"]*"/g, "");
+  if (!preserveIds) {
+    inner = inner.replace(/\s+id="[^"]*"/g, "");
+  } else if (idScope) {
+    // Icons are inlined many at a time, so a shared gradient id would make every
+    // `url(#a)` resolve to the first copy on the page. Scope ids per icon instead.
+    inner = inner
+      .replace(/\sid="([^"]+)"/g, (_match, id) => ` id="${idScope}${id}"`)
+      .replace(/url\(#([^)]+)\)/g, (_match, id) => `url(#${idScope}${id})`)
+      .replace(/(xlink:href|href)="#([^"]+)"/g, (_match, attr, id) => `${attr}="#${idScope}${id}"`);
+  }
   inner = inner.replace(/\s+class="[^"]*"/g, "");
   if (!preserveColors) {
     inner = inner.replace(/\b(fill|stroke)="(?!none|currentColor)[^"]*"/g, '$1="currentColor"');
@@ -320,11 +332,14 @@ async function buildSet(config) {
       const name = group.filenameNames && config.id !== "circle-flags" ? countryNames[filename.toLowerCase()] ?? filename : filename;
       const filenameWithoutStyle = filename.replace(/-(original|plain|line)(-wordmark)?$/i, "").replace(config.id === "phosphor" ? new RegExp(`-${group.category}$`) : /$^/, "");
       const iconName = filenameWithoutStyle || filename;
+      const idScope = config.scopeIds
+        ? `${config.id}-${filename}-`.replace(/[^a-z0-9-]+/gi, "-").toLowerCase()
+        : "";
       const isWordmark = filename.endsWith("-wordmark");
       if (config.includeWordmarks === false && isWordmark) continue;
       let svg;
       try {
-        svg = normalizeSvg(raw, config.iconWidth ?? (config.style === "solid" ? 16 : 24), config.fill, config.preserveColors, config.preserveIds, config.svgAttributes);
+        svg = normalizeSvg(raw, config.iconWidth ?? (config.style === "solid" ? 16 : 24), config.fill, config.preserveColors, config.preserveIds, config.svgAttributes, idScope);
       } catch (err) {
         console.warn(`  ! skipping ${config.id}/${file}: ${err.message}`);
         continue;
@@ -366,7 +381,7 @@ async function buildSet(config) {
   const showcase = (config.showcase ?? [])
     .map((name) => icons.find((icon) => icon.name === name)?.svg)
     .filter(Boolean);
-  const { iconsDir: _a, groups: _b, sourceJson: _sourceJson, prideSource: _prideSource, showcase: _showcase, ...meta } = config;
+  const { iconsDir: _a, groups: _b, sourceJson: _sourceJson, prideSource: _prideSource, showcase: _showcase, scopeIds: _scopeIds, ...meta } = config;
   const categoryPreviews = {};
   const categoryCounts = {};
   const previewIndex = ["flag-icons", "circle-flags"].includes(config.id) ? icons.findIndex((icon) => icon.tags.includes("us")) : -1;

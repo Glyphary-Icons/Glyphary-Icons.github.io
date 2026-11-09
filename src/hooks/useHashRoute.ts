@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from "react";
 export type Route =
   | { page: "home" }
   | { page: "libraries" }
-  | { page: "set"; setId: string; category?: string; query?: string };
+  | { page: "set"; setId: string; category?: string; query?: string }
+  | { page: "notfound"; path: string };
 
 function parseHash(hash: string): Route {
   const path = hash.replace(/^#/, "");
   const pathname = path.split("?")[0];
+  if (pathname === "" || pathname === "/") return { page: "home" };
   if (pathname === "/libraries" || pathname === "/libraries/") return { page: "libraries" };
   const match = pathname.match(/^\/set\/([a-z0-9-]+)(?:\/([a-z0-9-]+))?\/?$/i);
   if (match) {
@@ -19,11 +21,13 @@ function parseHash(hash: string): Route {
       query: params.get("q") ?? undefined,
     };
   }
-  return { page: "home" };
+  // Anything else is a real miss rather than a silent trip back to the home page.
+  return { page: "notfound", path: decodeURIComponent(pathname) };
 }
 
 function routeKey(route: Route): string {
   if (route.page === "set") return `set:${route.setId}:${route.category ?? "all"}:${route.query ?? ""}`;
+  if (route.page === "notfound") return `notfound:${route.path}`;
   return route.page;
 }
 

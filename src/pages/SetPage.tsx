@@ -70,6 +70,10 @@ export function SetPage({ setId, initialCategory, initialQuery }: SetPageProps) 
       if (flagMode && icon.category !== (setId === "circle-flags" ? "circle-flags" : "country-flags")) return false;
       if (skillIconMode && !["dark", "light", "standard"].includes(icon.category ?? "")) return false;
       if (skillIconMode && category !== "all" && icon.category !== category) return false;
+      // Devicon's "skills" view offers one chip per variant, so the chip has to
+      // narrow the grid; without this every variant stayed visible and the chips
+      // looked broken.
+      if (skillMode && category !== "all" && icon.category !== category) return false;
       if (!topicMode && !skillMode && !flagMode && !skillIconMode && category !== "all" && icon.category !== category) return false;
       if (!needle) return true;
       const terms = needle.split(/[\s,]+/).filter(Boolean);

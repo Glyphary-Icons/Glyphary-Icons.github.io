@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Page not found — Glyphary</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#2f54c9" />
+    <style>
+      @font-face {
+        font-family: "Glyphary Brand";
+        src: url("/fonts/space-grotesk-latin.woff2") format("woff2");
+        font-weight: 300 700;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light dark;
+        --bg: #fbfbfa;
+        --fg: #16161a;
+        --muted: #63636b;
+        --border: #d6d5ce;
+        --surface: #ffffff;
+        --accent: #2f54c9;
+        --accent-contrast: #ffffff;
+        --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        --font-brand: "Glyphary Brand", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+          Arial, sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e0e11;
+          --fg: #f2f2f0;
+          --muted: #a1a1aa;
+          --border: #36363f;
+          --surface: #17171c;
+          --accent: #8aa4ff;
+          --accent-contrast: #101015;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font-sans);
+        font-size: 15px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        width: min(520px, 100%);
+      }
+
+      .brand {
+        display: inline-block;
+        height: 24px;
+        color: var(--accent);
+      }
+
+      .brand svg {
+        display: block;
+        height: 100%;
+        width: auto;
+      }
+
+      .eyebrow {
+        margin: 48px 0 18px;
+        font-size: 12px;
+        font-weight: 620;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--font-brand);
+        font-size: clamp(2rem, 7vw, 2.9rem);
+        font-weight: 640;
+        letter-spacing: -0.035em;
+        line-height: 1.1;
+      }
+
+      p {
+        margin: 16px 0 0;
+        color: var(--muted);
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+        color: var(--fg);
+        word-break: break-all;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 30px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--fg);
+        font-size: 14px;
+        font-weight: 520;
+        text-decoration: none;
+      }
+
+      .button-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-contrast);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="brand" href="/" aria-label="Glyphary — home">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 175.2 38"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <g><path d="M28.5 15A14 14 0 1 1 23.12 3.97M28.5 15H16" /></g>
+          <g transform="translate(33.4 0)"><path d="M2 0V30" /></g>
+          <g transform="translate(40.2 0)"><path d="M1.5 10L10.9 25.2M18.6 10L5 38" /></g>
+          <g transform="translate(63.1 0)"><path d="M2 10V38" /><circle cx="11.4" cy="19.4" r="9.4" /></g>
+          <g transform="translate(87.9 0)"><path d="M2 0V30M2 21Q10.5 -1 19 21V30" /></g>
+          <g transform="translate(111.9 0)"><circle cx="11.4" cy="19.4" r="9.4" /><path d="M20.8 10V30" /></g>
+          <g transform="translate(136.7 0)"><path d="M2 10V30M2 20.4Q2 10 12.8 10" /></g>
+          <g transform="translate(154.7 0)"><path d="M1.5 10L10.9 25.2M18.6 10L5 38" /></g>
+        </svg>
+      </a>
+
+      <p class="eyebrow">Error 404</p>
+      <h1>Page not found</h1>
+      <p>
+        Nothing lives at <code id="path">this address</code>. The link may be out of date, or the
+        page may have moved.
+      </p>
+
+      <div class="actions">
+        <a class="button button-primary" href="/">Back to Glyphary</a>
+        <a class="button" href="/#/libraries">Browse libraries</a>
+      </div>
+    </main>
+
+    <script>
+      var target = document.getElementById("path");
+      var path = location.pathname.replace(/\/+$/, "");
+      if (target) target.textContent = path || "/";
+    </script>
+  </body>
+</html>
